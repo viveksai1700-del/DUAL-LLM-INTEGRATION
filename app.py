@@ -17,69 +17,103 @@ def route_question(prompt):
     return "gemini"
 
 
-def get_response(model, prompt):
-    if model == "gemini":
-        return ask_gemini(prompt)
-
-    return ask_openai(prompt)
-
-
 def main():
     print("\n=== Dual-LLM AI Assistant ===")
     print("1. Gemini")
     print("2. ChatGPT")
-    print("3. Auto Router")
+    print("3. Compare Both Models")
+    print("4. Auto Router")
 
-    choice = input("\nChoose a model (1/2/3): ")
+    choice = input("\nChoose an option (1/2/3/4): ")
     prompt = input("Enter your question: ")
 
+    # Gemini only
     if choice == "1":
-        model = "gemini"
+        try:
+            response = ask_gemini(prompt)
 
+            print("\n--- GEMINI ---\n")
+            print(response)
+
+        except Exception as error:
+            print("\nGemini failed:", error)
+
+    # ChatGPT only
     elif choice == "2":
-        model = "chatgpt"
+        try:
+            response = ask_openai(prompt)
 
+            print("\n--- CHATGPT ---\n")
+            print(response)
+
+        except Exception as error:
+            print("\nChatGPT failed:", error)
+
+    # Compare both
     elif choice == "3":
+        print("\nGetting responses from both models...\n")
+
+        try:
+            gemini_response = ask_gemini(prompt)
+
+            print("--- GEMINI ---\n")
+            print(gemini_response)
+
+        except Exception as error:
+            print("Gemini failed:", error)
+            return
+
+        try:
+            chatgpt_response = ask_openai(prompt)
+
+            print("\n--- CHATGPT ---\n")
+            print(chatgpt_response)
+
+        except Exception as error:
+            print("\nChatGPT is unavailable.")
+            print("Comparison requires both models.")
+            print("Reason:", error)
+            return
+
+        result = compare_responses(
+            gemini_response,
+            chatgpt_response
+        )
+
+        print("\n--- RESPONSE COMPARISON ---")
+        print(
+            "Gemini Score:",
+            result["response_1_score"],
+            "/ 10"
+        )
+
+        print(
+            "ChatGPT Score:",
+            result["response_2_score"],
+            "/ 10"
+        )
+
+        print("Winner:", result["winner"])
+
+    # Auto router
+    elif choice == "4":
         model = route_question(prompt)
+
+        print(f"\n--- AUTO ROUTER → {model.upper()} ---\n")
+
+        try:
+            if model == "gemini":
+                response = ask_gemini(prompt)
+            else:
+                response = ask_openai(prompt)
+
+            print(response)
+
+        except Exception as error:
+            print("Primary model failed:", error)
 
     else:
         print("Invalid choice.")
-        return
-
-    print(f"\n--- Using {model.upper()} ---\n")
-
-    try:
-        response = get_response(model, prompt)
-        print(response)
-
-        # Evaluate the response
-        result = compare_responses(response, response)
-
-        print("\n--- Evaluation ---")
-        print("Response 1 Score:", result["response_1_score"])
-        print("Response 2 Score:", result["response_2_score"])
-        print("Winner:", result["winner"])
-
-    except Exception as error:
-        print(f"{model.upper()} failed: {error}")
-
-        fallback_model = "chatgpt" if model == "gemini" else "gemini"
-
-        print(f"\nTrying {fallback_model.upper()} as fallback...\n")
-
-        try:
-            response = get_response(fallback_model, prompt)
-            print(response)
-
-            result = compare_responses(response, response)
-
-            print("\n--- Evaluation ---")
-            print("Response 1 Score:", result["response_1_score"])
-            print("Response 2 Score:", result["response_2_score"])
-            print("Winner:", result["winner"])
-
-        except Exception as fallback_error:
-            print(f"{fallback_model.upper()} fallback failed: {fallback_error}")
 
 
 if __name__ == "__main__":
