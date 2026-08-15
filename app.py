@@ -8,16 +8,64 @@ def route_question(prompt):
 
     coding_keywords = [
         "code", "python", "java", "javascript",
-        "program", "bug", "error", "debug"
+        "program", "bug", "error", "debug",
+        "function", "algorithm", "syntax"
+    ]
+
+    comparison_keywords = [
+        "compare", "comparison", "difference between",
+        "advantages and disadvantages", "pros and cons"
+    ]
+
+    explanation_keywords = [
+        "explain", "what is", "define",
+        "how does", "why does", "concept", "meaning"
     ]
 
     if any(keyword in prompt_lower for keyword in coding_keywords):
-        return "gemini"
+        return {
+            "model": "gemini",
+            "category": "Coding",
+            "reason": "The question contains programming-related keywords."
+        }
 
-    return "gemini"
+    elif any(
+        keyword in prompt_lower
+        for keyword in comparison_keywords
+    ):
+        return {
+            "model": "gemini",
+            "category": "Comparison",
+            "reason": "The question requires comparison or evaluation."
+        }
+
+    elif any(
+        keyword in prompt_lower
+        for keyword in explanation_keywords
+    ):
+        return {
+            "model": "gemini",
+            "category": "Explanation",
+            "reason": "The question asks for an explanation or definition."
+        }
+
+    else:
+        return {
+            "model": "gemini",
+            "category": "General",
+            "reason": "No specialized category was detected."
+        }
+
+
+def get_response(model, prompt):
+    if model == "gemini":
+        return ask_gemini(prompt)
+
+    return ask_openai(prompt)
 
 
 def main():
+
     print("\n=== Dual-LLM AI Assistant ===")
     print("1. Gemini")
     print("2. ChatGPT")
@@ -26,10 +74,18 @@ def main():
     print("5. Test AI Evaluator")
 
     choice = input("\nChoose an option (1/2/3/4/5): ")
-    prompt = input("Enter your question: ") if choice != "5" else ""
 
-    # Gemini
+    if choice == "5":
+        prompt = ""
+    else:
+        prompt = input("Enter your question: ")
+
+    # --------------------------------------------------
+    # GEMINI
+    # --------------------------------------------------
+
     if choice == "1":
+
         try:
             response = ask_gemini(prompt)
 
@@ -37,10 +93,14 @@ def main():
             print(response)
 
         except Exception as error:
-            print("\nGemini failed:", error)
+            print("Gemini failed:", error)
 
-    # ChatGPT
+    # --------------------------------------------------
+    # CHATGPT
+    # --------------------------------------------------
+
     elif choice == "2":
+
         try:
             response = ask_openai(prompt)
 
@@ -48,10 +108,14 @@ def main():
             print(response)
 
         except Exception as error:
-            print("\nChatGPT failed:", error)
+            print("ChatGPT failed:", error)
 
-    # Compare both models
+    # --------------------------------------------------
+    # COMPARE BOTH
+    # --------------------------------------------------
+
     elif choice == "3":
+
         print("\nGetting responses from both models...\n")
 
         try:
@@ -96,32 +160,72 @@ def main():
 
         print("Winner:", result["winner"])
 
-    # Auto Router
-    elif choice == "4":
-        model = route_question(prompt)
+    # --------------------------------------------------
+    # AUTO ROUTER
+    # --------------------------------------------------
 
-        print(f"\n--- AUTO ROUTER → {model.upper()} ---\n")
+    elif choice == "4":
+
+        routing = route_question(prompt)
+
+        model = routing["model"]
+        category = routing["category"]
+        reason = routing["reason"]
+
+        print("\n--- AUTO ROUTER ---")
+        print("Category:", category)
+        print("Selected Model:", model.upper())
+        print("Reason:", reason)
 
         try:
-            if model == "gemini":
-                response = ask_gemini(prompt)
-            else:
-                response = ask_openai(prompt)
+            response = get_response(model, prompt)
 
+            print("\n--- RESPONSE ---\n")
             print(response)
 
         except Exception as error:
-            print("Primary model failed:", error)
 
-    # AI Evaluator Test
+            print("\nPrimary model failed:", error)
+
+            fallback_model = (
+                "chatgpt"
+                if model == "gemini"
+                else "gemini"
+            )
+
+            print(
+                f"\nTrying {fallback_model.upper()} as fallback..."
+            )
+
+            try:
+                response = get_response(
+                    fallback_model,
+                    prompt
+                )
+
+                print("\n--- FALLBACK RESPONSE ---\n")
+                print(response)
+
+            except Exception as fallback_error:
+                print(
+                    "Fallback model failed:",
+                    fallback_error
+                )
+
+    # --------------------------------------------------
+    # AI EVALUATOR TEST
+    # --------------------------------------------------
+
     elif choice == "5":
+
         print("\n--- AI EVALUATOR TEST ---")
 
         response1 = """
         The Waterfall Model is a software development methodology
         where development progresses through sequential phases such
-        as requirements, design, implementation, testing, and maintenance.
-        Each phase is generally completed before the next phase begins.
+        as requirements, design, implementation, testing, and
+        maintenance. Each phase is generally completed before the
+        next phase begins.
         """
 
         response2 = """
@@ -144,6 +248,10 @@ def main():
 
         except Exception as error:
             print("Evaluator failed:", error)
+
+    # --------------------------------------------------
+    # INVALID OPTION
+    # --------------------------------------------------
 
     else:
         print("Invalid choice.")
