@@ -1,5 +1,6 @@
 from gemini_client import ask_gemini
 from openai_client import ask_openai
+from evaluator import compare_responses
 
 
 def route_question(prompt):
@@ -14,6 +15,13 @@ def route_question(prompt):
         return "gemini"
 
     return "gemini"
+
+
+def get_response(model, prompt):
+    if model == "gemini":
+        return ask_gemini(prompt)
+
+    return ask_openai(prompt)
 
 
 def main():
@@ -41,32 +49,37 @@ def main():
     print(f"\n--- Using {model.upper()} ---\n")
 
     try:
-        if model == "gemini":
-            response = ask_gemini(prompt)
-
-        else:
-            response = ask_openai(prompt)
-
+        response = get_response(model, prompt)
         print(response)
+
+        # Evaluate the response
+        result = compare_responses(response, response)
+
+        print("\n--- Evaluation ---")
+        print("Response 1 Score:", result["response_1_score"])
+        print("Response 2 Score:", result["response_2_score"])
+        print("Winner:", result["winner"])
 
     except Exception as error:
         print(f"{model.upper()} failed: {error}")
 
-        if model == "gemini":
-            print("\nTrying ChatGPT as fallback...")
+        fallback_model = "chatgpt" if model == "gemini" else "gemini"
 
-            try:
-                print(ask_openai(prompt))
-            except Exception:
-                print("ChatGPT is currently unavailable.")
+        print(f"\nTrying {fallback_model.upper()} as fallback...\n")
 
-        else:
-            print("\nTrying Gemini as fallback...")
+        try:
+            response = get_response(fallback_model, prompt)
+            print(response)
 
-            try:
-                print(ask_gemini(prompt))
-            except Exception:
-                print("Gemini is currently unavailable.")
+            result = compare_responses(response, response)
+
+            print("\n--- Evaluation ---")
+            print("Response 1 Score:", result["response_1_score"])
+            print("Response 2 Score:", result["response_2_score"])
+            print("Winner:", result["winner"])
+
+        except Exception as fallback_error:
+            print(f"{fallback_model.upper()} fallback failed: {fallback_error}")
 
 
 if __name__ == "__main__":
