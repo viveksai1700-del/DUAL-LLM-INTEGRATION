@@ -3,6 +3,7 @@ import streamlit as st
 from gemini_client import ask_gemini
 from openai_client import ask_openai
 from evaluator import ai_evaluate
+from router import route_question
 
 
 # --------------------------------------------------
@@ -25,7 +26,6 @@ st.markdown(
     """
     <style>
 
-    /* Global */
     .stApp {
         background: #0b0f19;
         color: #f5f7fa;
@@ -35,7 +35,6 @@ st.markdown(
         padding: 2rem 3rem 3rem 3rem;
     }
 
-    /* Hide Streamlit branding */
     #MainMenu {
         visibility: hidden;
     }
@@ -48,7 +47,6 @@ st.markdown(
         visibility: hidden;
     }
 
-    /* Sidebar */
     section[data-testid="stSidebar"] {
         background: #111827;
         border-right: 1px solid #1f2937;
@@ -59,7 +57,6 @@ st.markdown(
         color: #f9fafb;
     }
 
-    /* Main heading */
     .hero-title {
         font-size: 42px;
         font-weight: 700;
@@ -76,7 +73,6 @@ st.markdown(
         margin-bottom: 30px;
     }
 
-    /* Section titles */
     .section-title {
         font-size: 18px;
         font-weight: 600;
@@ -84,7 +80,6 @@ st.markdown(
         margin: 20px 0 12px 0;
     }
 
-    /* Cards */
     .info-card {
         background: #111827;
         border: 1px solid #1f2937;
@@ -105,7 +100,6 @@ st.markdown(
         color: #ffffff;
     }
 
-    /* Response container */
     .response-container {
         background: #111827;
         border: 1px solid #1f2937;
@@ -116,7 +110,6 @@ st.markdown(
         color: #e5e7eb;
     }
 
-    /* Model labels */
     .model-label {
         font-size: 16px;
         font-weight: 600;
@@ -124,7 +117,6 @@ st.markdown(
         margin-bottom: 10px;
     }
 
-    /* Text area */
     textarea {
         background-color: #111827 !important;
         color: #ffffff !important;
@@ -137,14 +129,12 @@ st.markdown(
         box-shadow: none !important;
     }
 
-    /* Select box */
     div[data-baseweb="select"] > div {
         background-color: #111827;
         border: 1px solid #374151;
         border-radius: 10px;
     }
 
-    /* Button */
     .stButton > button {
         width: 100%;
         height: 48px;
@@ -162,12 +152,10 @@ st.markdown(
         border-color: #6b7280;
     }
 
-    /* Divider */
     hr {
         border-color: #1f2937;
     }
 
-    /* Sidebar text */
     .sidebar-description {
         color: #9ca3af;
         font-size: 13px;
@@ -180,7 +168,6 @@ st.markdown(
         padding: 5px 0;
     }
 
-    /* Status */
     .status {
         display: inline-block;
         padding: 5px 10px;
@@ -191,7 +178,6 @@ st.markdown(
         font-weight: 500;
     }
 
-    /* Footer */
     .footer {
         text-align: center;
         color: #6b7280;
@@ -234,6 +220,7 @@ with st.sidebar:
     model = st.selectbox(
         "AI Mode",
         [
+            "Auto Router",
             "Gemini",
             "ChatGPT",
             "Compare Both"
@@ -255,6 +242,7 @@ with st.sidebar:
         """
         <div class="feature-item">Gemini integration</div>
         <div class="feature-item">ChatGPT integration</div>
+        <div class="feature-item">Intelligent routing</div>
         <div class="feature-item">Multi-model comparison</div>
         <div class="feature-item">AI response evaluation</div>
         <div class="feature-item">Fallback handling</div>
@@ -288,8 +276,8 @@ st.markdown(
     """
     <div class="hero-subtitle">
         A multi-model AI workspace that allows you to interact
-        with different language models, compare their responses,
-        and evaluate response quality.
+        with different language models, automatically route
+        questions, compare responses, and evaluate response quality.
     </div>
     """,
     unsafe_allow_html=True
@@ -326,10 +314,127 @@ ask_button = st.button(
 
 
 # --------------------------------------------------
+# AUTO ROUTER
+# --------------------------------------------------
+
+if ask_button and prompt.strip() and model == "Auto Router":
+
+    routing = route_question(prompt)
+
+    selected_model = routing["model"]
+    category = routing["category"]
+    reason = routing["reason"]
+
+    st.markdown(
+        '<div class="section-title">Routing Decision</div>',
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            f"""
+            <div class="info-card">
+                <div class="card-title">Detected Category</div>
+                <div class="card-value">{category}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+
+        st.markdown(
+            f"""
+            <div class="info-card">
+                <div class="card-title">Selected Model</div>
+                <div class="card-value">
+                    {selected_model.title()}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.info(
+        f"Routing reason: {reason}"
+    )
+
+    with st.spinner(
+        f"Generating response with {selected_model.title()}..."
+    ):
+
+        try:
+
+            if selected_model == "gemini":
+                response = ask_gemini(prompt)
+
+            else:
+                response = ask_openai(prompt)
+
+            st.markdown(
+                '<div class="section-title">Response</div>',
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                f'<div class="response-container">'
+                f'{response}'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+        except Exception as error:
+
+            st.error(
+                f"Primary model failed: {error}"
+            )
+
+            fallback_model = (
+                "chatgpt"
+                if selected_model == "gemini"
+                else "gemini"
+            )
+
+            st.info(
+                f"Trying {fallback_model.title()} as fallback..."
+            )
+
+            try:
+
+                if fallback_model == "gemini":
+                    fallback_response = ask_gemini(prompt)
+                else:
+                    fallback_response = ask_openai(prompt)
+
+                st.markdown(
+                    '<div class="section-title">'
+                    'Fallback Response'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
+                st.markdown(
+                    f'<div class="response-container">'
+                    f'{fallback_response}'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+            except Exception as fallback_error:
+
+                st.error(
+                    f"Fallback model failed: {fallback_error}"
+                )
+
+
+# --------------------------------------------------
 # GEMINI MODE
 # --------------------------------------------------
 
-if ask_button and prompt.strip() and model == "Gemini":
+elif ask_button and prompt.strip() and model == "Gemini":
 
     with st.spinner("Generating response..."):
 
@@ -343,7 +448,9 @@ if ask_button and prompt.strip() and model == "Gemini":
             )
 
             st.markdown(
-                f'<div class="response-container">{response}</div>',
+                f'<div class="response-container">'
+                f'{response}'
+                f'</div>',
                 unsafe_allow_html=True
             )
 
@@ -372,7 +479,9 @@ elif ask_button and prompt.strip() and model == "ChatGPT":
             )
 
             st.markdown(
-                f'<div class="response-container">{response}</div>',
+                f'<div class="response-container">'
+                f'{response}'
+                f'</div>',
                 unsafe_allow_html=True
             )
 
@@ -384,7 +493,7 @@ elif ask_button and prompt.strip() and model == "ChatGPT":
 
 
 # --------------------------------------------------
-# COMPARE BOTH
+# COMPARE BOTH MODELS
 # --------------------------------------------------
 
 elif ask_button and prompt.strip() and model == "Compare Both":
@@ -453,7 +562,7 @@ elif ask_button and prompt.strip() and model == "Compare Both":
                     "ChatGPT is currently unavailable."
                 )
 
-    # Evaluation
+    # AI Evaluation
     if gemini_response and chatgpt_response:
 
         st.divider()
