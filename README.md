@@ -20,7 +20,7 @@ The project is designed as an experiment in multi-model AI orchestration and dem
 
 # Features
 
-### Multi-Model Integration
+## Multi-Model Integration
 
 Interact with multiple AI providers through a single application.
 
