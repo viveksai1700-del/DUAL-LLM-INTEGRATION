@@ -247,7 +247,7 @@ This project demonstrates practical experience with:
 
 ## Author
 
-**Sai Vivek**
+**Mittapally Sai Vivek**
 
 Computer Science and Engineering
 
