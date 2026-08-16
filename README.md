@@ -18,7 +18,7 @@ The application currently supports:-
 
 The project is designed as an experiment in multi-model AI orchestration and demonstrates how different language models can be integrated into a single application.
 
-## Features
+# Features
 
 ### Multi-Model Integration
 
