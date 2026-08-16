@@ -6,7 +6,7 @@ A multi-model AI assistant built with Python and Streamlit that integrates multi
 
 The Dual-LLM AI Assistant provides a unified interface for interacting with different AI models.
 
-The application currently supports:
+The application currently supports:-
 
 * Gemini
 * ChatGPT
