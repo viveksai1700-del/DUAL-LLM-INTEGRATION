@@ -35,7 +35,7 @@ The application analyzes the user's question and identifies its category, such a
 
 The router then selects an appropriate model.
 
-### Fallback Handling
+## Fallback Handling
 
 If the selected model fails or becomes unavailable, the application attempts to use the alternative model.
 
